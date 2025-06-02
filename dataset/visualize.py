@@ -91,8 +91,8 @@ def coco_viz(
         plt.show()
 
 coco_viz(
-    img_dir="dataset/vqc/test",
-    ann_file="dataset/vqc/test/_annotations.coco.json",
-    n_images=1,           # number of random images to show
-    show_masks=False      # turn on if you have segmentations
+    img_dir="vqc/test",
+    ann_file="vqc/test/_annotations.coco.json",
+    n_images=1,
+    show_masks=False
 )
