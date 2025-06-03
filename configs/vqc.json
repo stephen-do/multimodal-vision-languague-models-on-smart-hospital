@@ -1,0 +1,9 @@
+{
+    "combine_datasets": ["refexp"],
+    "combine_datasets_val": ["refexp"],
+    "refexp_dataset_name": "vqc",
+    "coco_path": "dataset/vqc/train",
+    "refexp_ann_path": "dataset/vqc/train",
+    "epochs": 5,
+    "lr_drop": 3
+}

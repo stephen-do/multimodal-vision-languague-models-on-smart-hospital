@@ -1,3 +1,4 @@
+# Copyright (c) Aishwarya Kamath & Nicolas Carion. Licensed under the Apache License 2.0. All Rights Reserved
 import copy
 from collections import defaultdict
 from pathlib import Path
@@ -12,11 +13,11 @@ from util.box_ops import generalized_box_iou
 from .coco import ModulatedDetection, make_coco_transforms
 
 
-class PerInfDetection(ModulatedDetection):
+class RefExpDetection(ModulatedDetection):
     pass
 
 
-class PerInfEvaluator(object):
+class RefExpEvaluator(object):
     def __init__(self, refexp_gt, iou_types, k=(1, 5, 10), thresh_iou=0.5):
         assert isinstance(k, (list, tuple))
         refexp_gt = copy.deepcopy(refexp_gt)
@@ -103,7 +104,7 @@ def build(image_set, args):
         assert False, f"{refexp_dataset_name} not a valid datasset name for refexp"
 
     tokenizer = RobertaTokenizerFast.from_pretrained(args.text_encoder_type)
-    dataset = PerInfDetection(
+    dataset = RefExpDetection(
         img_dir,
         ann_file,
         transforms=make_coco_transforms(image_set, cautious=True),
