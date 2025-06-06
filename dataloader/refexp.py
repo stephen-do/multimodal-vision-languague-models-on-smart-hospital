@@ -44,11 +44,9 @@ class RefExpEvaluator(object):
     def summarize(self):
         if dist.is_main_process():
             dataset2score = {
-                "refcoco": {k: 0.0 for k in self.k},
-                "refcoco+": {k: 0.0 for k in self.k},
-                "refcocog": {k: 0.0 for k in self.k},
+                "vqc": {k: 0.0 for k in self.k},
             }
-            dataset2count = {"refcoco": 0.0, "refcoco+": 0.0, "refcocog": 0.0}
+            dataset2count = {"vqc": 0.0}
             for image_id in self.img_ids:
                 ann_ids = self.refexp_gt.getAnnIds(imgIds=image_id)
                 assert len(ann_ids) == 1
@@ -89,23 +87,21 @@ class RefExpEvaluator(object):
             return results
         return None
 
-
 def build(image_set, args):
-    img_dir = Path(args.coco_path)
-
+    root = Path(args.coco_path)
+    assert root.exists(), f"provided COCO path {root} does not exist"
     refexp_dataset_name = args.refexp_dataset_name
-    if refexp_dataset_name in ["vqc"]:
-        if args.test:
-            test_set = args.test_type
-            ann_file = Path(args.refexp_ann_path) / f"mdetr_periapical_annotations.json"
-        else:
-            ann_file = Path(args.refexp_ann_path) / f"mdetr_periapical_annotations.json"
-    else:
+    if refexp_dataset_name not in ["vqc"]:
         assert False, f"{refexp_dataset_name} not a valid datasset name for refexp"
+    PATHS = {
+        "train": (root / "train", root / "train" / f"mdetr_periapical_annotations.json"),
+        "val": (root / "valid", root / "valid" / f"mdetr_periapical_annotations.json"),
+    }
 
+    img_folder, ann_file = PATHS[image_set]
     tokenizer = RobertaTokenizerFast.from_pretrained(args.text_encoder_type)
     dataset = RefExpDetection(
-        img_dir,
+        img_folder,
         ann_file,
         transforms=make_coco_transforms(image_set, cautious=True),
         return_masks=args.masks,
