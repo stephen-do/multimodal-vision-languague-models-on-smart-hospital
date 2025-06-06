@@ -558,7 +558,7 @@ def main(args):
                     checkpoint_path,
                 )
 
-        if epoch % args.eval_skip == 0:
+        if epoch % args.eval_skip == 1:
             test_stats = {}
             test_model = model_ema if model_ema is not None else model
             for i, item in enumerate(val_tuples):

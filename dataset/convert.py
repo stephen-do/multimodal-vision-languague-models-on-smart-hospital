@@ -2,6 +2,7 @@ import json
 from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 import nltk
+
 # nltk.download('punkt_tab')
 # Map category_id to disease severity
 for set_ in ['train', 'test', 'valid']:
@@ -72,6 +73,20 @@ for set_ in ['train', 'test', 'valid']:
             "caption": caption,
             "tokens": tokens
         })
+        output['categories'] = [
+            {
+                "id": 1,
+                "name": "3"
+            },
+            {
+                "id": 2,
+                "name": "4"
+            },
+            {
+                "id": 3,
+                "name": "5"
+            }
+        ]
 
     # Save JSON
     with open(f'vqc/{set_}/mdetr_periapical_annotations.json', 'w') as f:
