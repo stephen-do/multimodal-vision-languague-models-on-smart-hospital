@@ -3,6 +3,7 @@
     "combine_datasets_val": ["refexp"],
     "refexp_dataset_name": "vqc",
     "coco_path": "dataset/vqc",
+    "refexp_ann_path": "dataset/vqc",
     "epochs": 10,
     "lr_drop": 3
 }
