@@ -1,7 +1,7 @@
 import torch.utils.data
 import torchvision
 from .coco import build as build_coco
-from .refexp import build as build_refexp
+from .pg_pai import build as build_pai
 
 
 def get_coco_api_from_dataset(dataset):
@@ -17,6 +17,6 @@ def get_coco_api_from_dataset(dataset):
 def build_dataset(dataset_file: str, image_set: str, args):
     if dataset_file == "coco":
         return build_coco(image_set, args)
-    if dataset_file == "refexp":
-        return build_refexp(image_set, args)
+    if dataset_file == "pg_pai":
+        return build_pai(image_set, args)
     raise ValueError(f"dataset {dataset_file} not supported")

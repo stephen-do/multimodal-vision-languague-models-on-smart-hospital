@@ -12,7 +12,7 @@ import torch.nn
 import torch.optim
 
 import util.dist as dist
-from dataloader.refexp import RefExpEvaluator
+from dataloader.pg_pai_eval import PhraseGroundingPAIEvaluator
 from dataloader.coco_eval import CocoEvaluator
 from util.metrics import MetricLogger, SmoothedValue
 from util.misc import targets_to
@@ -229,7 +229,7 @@ def evaluate(
             evaluator.accumulate()
             evaluator.summarize()
 
-        elif isinstance(evaluator, (RefExpEvaluator)):
+        elif isinstance(evaluator, (PhraseGroundingPAIEvaluator)):
             refexp_res = evaluator.summarize()
 
     # accumulate predictions from all images

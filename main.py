@@ -20,7 +20,7 @@ import util.dist as dist
 import util.misc as utils
 from dataloader import build_dataset, get_coco_api_from_dataset
 from dataloader.coco_eval import CocoEvaluator
-from dataloader.refexp import RefExpEvaluator
+from dataloader.pg_pai_eval import PhraseGroundingPAIEvaluator
 from engine import evaluate, train_one_epoch
 from models import build_model
 from models.postprocessors import build_postprocessors
@@ -31,42 +31,25 @@ def get_args_parser():
     parser.add_argument("--run_name", default="vqc", type=str)
 
     # Dataset specific
-    parser.add_argument("--dataset_config", default='configs/vqc.json', required=False)
+    parser.add_argument("--dataset_config", default='configs/pg_pai.json', required=False)
     parser.add_argument("--do_qa", default=False, action="store_true", help="Whether to do question answering")
     parser.add_argument(
         "--predict_final",
         action="store_true",
         help="If true, will predict if a given box is in the actual referred set. Useful for CLEVR-Ref+ only currently.",
+        default=False
     )
-    parser.add_argument("--no_detection", default=False, action="store_true", help="Whether to train the detector")
+    parser.add_argument("--no_detection", default=True, action="store_true", help="Whether to train the detector")
     parser.add_argument(
-        "--split_qa_heads", action="store_true", help="Whether to use a separate head per question type in vqa"
-    )
-    parser.add_argument(
-        "--combine_datasets", nargs="+", help="List of datasets to combine for training", default=["flickr"]
-    )
-    parser.add_argument(
-        "--combine_datasets_val", nargs="+", help="List of datasets to combine for eval", default=["flickr"]
+        "--split_qa_heads", action="store_true", help="Whether to use a separate head per question type in vqa", default=False
     )
 
     parser.add_argument("--coco_path", type=str, default="")
-    parser.add_argument("--vg_img_path", type=str, default="")
-    parser.add_argument("--vg_ann_path", type=str, default="")
-    parser.add_argument("--clevr_img_path", type=str, default="")
-    parser.add_argument("--clevr_ann_path", type=str, default="")
-    parser.add_argument("--phrasecut_ann_path", type=str, default="")
-    parser.add_argument(
-        "--phrasecut_orig_ann_path",
-        type=str,
-        default="",
-    )
-    parser.add_argument("--modulated_lvis_ann_path", type=str, default="")
-
     # Training hyper-parameters
     parser.add_argument("--lr", default=1e-4, type=float)
     parser.add_argument("--lr_backbone", default=1e-5, type=float)
     parser.add_argument("--text_encoder_lr", default=5e-5, type=float)
-    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--weight_decay", default=1e-4, type=float)
     parser.add_argument("--epochs", default=40, type=int)
     parser.add_argument("--lr_drop", default=35, type=int)
@@ -480,8 +463,13 @@ def main(args):
             iou_types.append("segm")
 
         evaluator_list.append(CocoEvaluator(base_ds, tuple(iou_types), useCats=False))
-        if "refexp" in dataset_name:
-            evaluator_list.append(RefExpEvaluator(base_ds, ("bbox")))
+        if "pg_pai" in dataset_name:
+            evaluator_list.append(
+                PhraseGroundingPAIEvaluator(
+                    args.pg_pai_dataset_name,
+                    subset="test" if args.test else "val",
+                )
+            )
         return evaluator_list
 
     # Runs only evaluation, by default on the validation set unless --test is passed.

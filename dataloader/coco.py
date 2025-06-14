@@ -81,6 +81,7 @@ def convert_coco_poly_to_mask(segmentations, height, width):
 def create_positive_map(tokenized, tokens_positive):
     """construct a map such that positive_map[i,j] = True iff box i is associated to token j"""
     positive_map = torch.zeros((len(tokens_positive), 256), dtype=torch.float)
+    print(tokens_positive)
     for j, tok_list in enumerate(tokens_positive):
         for (beg, end) in tok_list:
             beg_pos = tokenized.char_to_token(beg)

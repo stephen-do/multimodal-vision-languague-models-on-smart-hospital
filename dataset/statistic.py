@@ -10,6 +10,10 @@ from collections import defaultdict, Counter
 from pycocotools.coco import COCO
 from tqdm import tqdm
 
+# Create output directory
+output_dir = "analysis_outputs"
+os.makedirs(output_dir, exist_ok=True)
+
 # ========================================
 # 2. OVERVIEW ANALYSIS
 # ========================================
@@ -32,7 +36,8 @@ plt.xlabel("Annotations per image")
 plt.ylabel("Number of images")
 plt.title("Distribution of annotations per image")
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.join(output_dir, "annotations_per_image.png"))
+plt.close()
 
 # ========================================
 # 4. BOUNDING BOX SIZE DISTRIBUTION
@@ -46,7 +51,8 @@ plt.xlabel("Width")
 plt.ylabel("Height")
 plt.title("Bounding Box Size Distribution")
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.join(output_dir, "bbox_size_distribution.png"))
+plt.close()
 
 # ========================================
 # 5. CATEGORY DISTRIBUTION
@@ -63,7 +69,8 @@ plt.xticks(rotation=45)
 plt.ylabel("Number of annotations")
 plt.title("Distribution by category")
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.join(output_dir, "category_distribution.png"))
+plt.close()
 
 # ========================================
 # 6. COLLECT PIXEL INTENSITY BY CATEGORY
@@ -113,7 +120,9 @@ def plot_pixel_histogram_by_category(pixel_values, cat_id_to_name, channel="R"):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    filename = f"pixel_intensity_channel_{channel}.png"
+    plt.savefig(os.path.join(output_dir, filename))
+    plt.close()
 
 pixel_values, cat_id_to_name = collect_pixel_intensity_by_category(
     coco_json_path="vqc/test/_annotations.coco.json",
@@ -165,7 +174,8 @@ def plot_heatmap(heatmap, cmap='hot'):
     plt.title("BBox Heatmap")
     plt.axis("off")
     plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(output_dir, "bbox_heatmap.png"))
+    plt.close()
 
 heatmap = create_bbox_heatmap(
     coco_json_path="vqc/test/_annotations.coco.json",
