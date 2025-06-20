@@ -1,9 +1,0 @@
-{
-    "combine_datasets": ["pg_pai"],
-    "combine_datasets_val": ["pg_pai"],
-    "pg_pai_dataset_name": "pg_pai",
-    "coco_path": "dataset/vqc",
-    "pg_pai_img_path" : "",
-    "pg_pai_dataset_path" : "",
-    "pg_pai_ann_path" : ""
-}

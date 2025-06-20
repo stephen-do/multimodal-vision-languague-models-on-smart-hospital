@@ -12,7 +12,7 @@ import torch.nn
 import torch.optim
 
 import util.dist as dist
-from dataloader.pg_pai_eval import PhraseGroundingPAIEvaluator
+from dataloader.refexp import RefExpEvaluator
 from dataloader.coco_eval import CocoEvaluator
 from util.metrics import MetricLogger, SmoothedValue
 from util.misc import targets_to
@@ -189,27 +189,6 @@ def evaluate(
                 target_sizes = torch.stack([t["size"] for t in targets], dim=0)
                 results = postprocessors["segm"](results, outputs, orig_target_sizes, target_sizes)
 
-            flickr_res = [] if "flickr_bbox" in postprocessors.keys() else None
-            if "flickr_bbox" in postprocessors.keys():
-                image_ids = [t["original_img_id"] for t in targets]
-                sentence_ids = [t["sentence_id"] for t in targets]
-                items_per_batch_element = [t["nb_eval"] for t in targets]
-                positive_map_eval = batch_dict["positive_map_eval"].to(device)
-                flickr_results = postprocessors["flickr_bbox"](
-                    outputs, orig_target_sizes, positive_map_eval, items_per_batch_element
-                )
-                assert len(flickr_results) == len(image_ids) == len(sentence_ids)
-                for im_id, sent_id, output in zip(image_ids, sentence_ids, flickr_results):
-                    flickr_res.append({"image_id": im_id, "sentence_id": sent_id, "boxes": output})
-
-            phrasecut_res = None
-            if "phrasecut" in postprocessors.keys():
-                phrasecut_res = postprocessors["phrasecut"](results)
-                assert len(targets) == len(phrasecut_res)
-                for i in range(len(targets)):
-                    phrasecut_res[i]["original_id"] = targets[i]["original_id"]
-                    phrasecut_res[i]["task_id"] = targets[i]["task_id"]
-
             res = {target["image_id"].item(): output for target, output in zip(targets, results)}
 
             for evaluator in evaluator_list:
@@ -221,15 +200,12 @@ def evaluate(
     for evaluator in evaluator_list:
         evaluator.synchronize_between_processes()
 
-    refexp_res = None
-    flickr_res = None
-    phrasecut_res = None
     for evaluator in evaluator_list:
         if isinstance(evaluator, CocoEvaluator):
             evaluator.accumulate()
             evaluator.summarize()
 
-        elif isinstance(evaluator, (PhraseGroundingPAIEvaluator)):
+        elif isinstance(evaluator, (RefExpEvaluator)):
             refexp_res = evaluator.summarize()
 
     # accumulate predictions from all images
@@ -241,14 +217,5 @@ def evaluate(
                 stats["coco_eval_bbox"] = evaluator.coco_eval["bbox"].stats.tolist()
             if "segm" in postprocessors.keys():
                 stats["coco_eval_masks"] = evaluator.coco_eval["segm"].stats.tolist()
-
-    if refexp_res is not None:
-        stats.update(refexp_res)
-
-    if flickr_res is not None:
-        stats["flickr"] = flickr_res
-
-    if phrasecut_res is not None:
-        stats["phrasecut"] = phrasecut_res
 
     return stats

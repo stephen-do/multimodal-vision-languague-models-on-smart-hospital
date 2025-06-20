@@ -218,10 +218,4 @@ def build_postprocessors(args, dataset_name) -> Dict[str, nn.Module]:
     if args.masks:
         postprocessors["segm"] = PostProcessSegm()
 
-    if dataset_name == "flickr":
-        postprocessors["flickr_bbox"] = PostProcessFlickr()
-
-    if dataset_name == "phrasecut":
-        postprocessors["phrasecut"] = PostProcessPhrasecut()
-
     return postprocessors

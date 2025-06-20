@@ -20,7 +20,7 @@ import util.dist as dist
 import util.misc as utils
 from dataloader import build_dataset, get_coco_api_from_dataset
 from dataloader.coco_eval import CocoEvaluator
-from dataloader.pg_pai_eval import PhraseGroundingPAIEvaluator
+from dataloader.refexp import RefExpEvaluator
 from engine import evaluate, train_one_epoch
 from models import build_model
 from models.postprocessors import build_postprocessors
@@ -31,17 +31,17 @@ def get_args_parser():
     parser.add_argument("--run_name", default="vqc", type=str)
 
     # Dataset specific
-    parser.add_argument("--dataset_config", default='configs/pg_pai.json', required=False)
-    parser.add_argument("--do_qa", default=False, action="store_true", help="Whether to do question answering")
+    parser.add_argument("--dataset_config", default='configs/refexp_pai.json', required=False)
+    parser.add_argument("--do_qa", action="store_true", help="Whether to do question answering")
     parser.add_argument(
         "--predict_final",
         action="store_true",
         help="If true, will predict if a given box is in the actual referred set. Useful for CLEVR-Ref+ only currently.",
         default=False
     )
-    parser.add_argument("--no_detection", default=True, action="store_true", help="Whether to train the detector")
+    parser.add_argument("--no_detection", action="store_true", help="Whether to train the detector")
     parser.add_argument(
-        "--split_qa_heads", action="store_true", help="Whether to use a separate head per question type in vqa", default=False
+        "--split_qa_heads", action="store_false", help="Whether to use a separate head per question type in vqa", default=False
     )
 
     parser.add_argument("--coco_path", type=str, default="")
@@ -439,7 +439,7 @@ def main(args):
     # Used for resuming training from the checkpoint of a model. Used when training times-out or is pre-empted.
     if args.resume:
         if args.resume.startswith("https"):
-            checkpoint = torch.hub.load_state_dict_from_url(args.resume, map_location="cpu", check_hash=True)
+            checkpoint = torch.hub.load_state_dict_from_url(args.resume, map_location=device, check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location="cpu")
         model_without_ddp.load_state_dict(checkpoint["model"])
@@ -463,13 +463,8 @@ def main(args):
             iou_types.append("segm")
 
         evaluator_list.append(CocoEvaluator(base_ds, tuple(iou_types), useCats=False))
-        if "pg_pai" in dataset_name:
-            evaluator_list.append(
-                PhraseGroundingPAIEvaluator(
-                    args.pg_pai_dataset_name,
-                    subset="test" if args.test else "val",
-                )
-            )
+        if "refexp" in dataset_name:
+            evaluator_list.append(RefExpEvaluator(base_ds, ("bbox")))
         return evaluator_list
 
     # Runs only evaluation, by default on the validation set unless --test is passed.
@@ -546,7 +541,7 @@ def main(args):
                     checkpoint_path,
                 )
 
-        if epoch % args.eval_skip == 1:
+        if epoch % args.eval_skip == 0:
             test_stats = {}
             test_model = model_ema if model_ema is not None else model
             for i, item in enumerate(val_tuples):
