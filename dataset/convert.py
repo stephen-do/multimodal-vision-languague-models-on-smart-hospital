@@ -87,6 +87,14 @@ for set_ in ['train', 'test', 'valid']:
                 "name": "5"
             }
         ]
+        output['info'] = {
+            "year": "2025",
+            "version": "1",
+            "description": "Exported from roboflow.com",
+            "contributor": "",
+            "url": "https://public.roboflow.com/object-detection/undefined",
+            "date_created": "2025-04-23T02:16:48+00:00"
+        }
 
     # Save JSON
     with open(f'vqc/{set_}/mdetr_periapical_annotations.json', 'w') as f:
