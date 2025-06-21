@@ -50,6 +50,9 @@ class RefExpEvaluator(object):
             for image_id in self.img_ids:
                 ann_ids = self.refexp_gt.getAnnIds(imgIds=image_id)
                 # assert len(ann_ids) == 1
+                if len(ann_ids) == 0:
+                    print(f"[Warning] No annotations for image_id = {image_id}")
+                    continue
                 img_info = self.refexp_gt.loadImgs(image_id)[0]
 
                 target = self.refexp_gt.loadAnns(ann_ids[0])
