@@ -165,8 +165,8 @@ def get_args_parser():
         choices=("none", "smallconv", "v2"),
         help="Segmentation head to be used (if None, segmentation will not be trained)",
     )
-    parser.add_argument("--remove_difficult", action="store_true")
-    parser.add_argument("--masks", action="store_true", default=False)
+    parser.add_argument("--remove_difficult", default=False)
+    parser.add_argument("--masks", default=False)
 
     # Loss
     parser.add_argument(

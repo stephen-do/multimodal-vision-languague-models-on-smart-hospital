@@ -1,70 +1,92 @@
 import json
 from nltk.tokenize import word_tokenize
 from tqdm import tqdm
-import nltk
+import os
 
-# nltk.download('punkt_tab')
-# Map category_id to disease severity
-for set_ in ['train', 'test', 'valid']:
-    CATEGORY_MAP = {
-        1: "mild pai",
-        2: "moderate pai",
-        3: "severe pai"
-    }
+# CATEGORY MAP: Chuyển category_id thành phrase
+CATEGORY_MAP = {
+    1: "mild pai",
+    2: "moderate pai",
+    3: "severe pai"
+}
 
+# Loop qua từng tập dữ liệu
+for set_ in ['train', 'valid', 'test']:
     with open(f'vqc/{set_}/_annotations.coco.json', 'r') as f:
         coco = json.load(f)
 
     output = {
         "images": [],
         "annotations": [],
-        "sentences": []
+        "sentences": [],
+        "categories": [
+            {"id": 1, "name": "mild pai"},
+            {"id": 2, "name": "moderate pai"},
+            {"id": 3, "name": "severe pai"},
+        ],
+        "info": {
+            "year": "2025",
+            "version": "1",
+            "description": "Converted to MDETR RefExp format",
+            "contributor": "You",
+            "url": "https://your.dataset.source/",
+            "date_created": "2025-06-24"
+        }
     }
 
     ann_id = 0
-    for img in tqdm(coco['images']):
+    for img in tqdm(coco['images'], desc=f"Processing {set_} set"):
         image_id = img['id']
 
         anns = [a for a in coco['annotations'] if a['image_id'] == image_id]
+        if not anns:
+            continue
+
         phrases = [CATEGORY_MAP[a['category_id']] for a in anns]
         caption = ", ".join(phrases)
-        img["caption"] = caption
+
         output['images'].append({
             "id": image_id,
             "file_name": img['file_name'],
             "height": img['height'],
             "width": img['width'],
-            "caption": img['caption'],
-            "dataset_name": 'vqc',
+            "caption": caption,
+            "dataset_name": 'vqc'
         })
+
         tokens = word_tokenize(caption)
 
-        # Handle repeated phrases (e.g., 2 x mild)
+        # Mapping phrase -> token spans (list of token indices)
         token_map = []
         used_spans = set()
         for phrase in phrases:
             phrase_tokens = word_tokenize(phrase)
+            matched = False
             for i in range(len(tokens) - len(phrase_tokens) + 1):
-                if tokens[i:i + len(phrase_tokens)] == phrase_tokens and (i, i + len(phrase_tokens)) not in used_spans:
-                    token_map.append([i, i + len(phrase_tokens)])
-                    used_spans.add((i, i + len(phrase_tokens)))
+                token_indices = list(range(i, i + len(phrase_tokens)))
+                if tokens[i:i + len(phrase_tokens)] == phrase_tokens and tuple(token_indices) not in used_spans:
+                    token_map.append(token_indices)  # ✅ đúng format RefExp
+                    used_spans.add(tuple(token_indices))
+                    matched = True
                     break
-            else:
+            if not matched:
+                print(f"[WARN] Phrase not found in caption: '{phrase}' → skipped.")
                 token_map.append(None)
 
         for a, token_span in zip(anns, token_map):
             if token_span is None:
-                continue
+                continue  # Skip nếu không match được phrase trong caption
+
             output['annotations'].append({
+                "id": ann_id,
                 "image_id": image_id,
                 "bbox": a['bbox'],
                 "category_id": a['category_id'],
-                "id": ann_id,
                 "iscrowd": a.get("iscrowd", 0),
                 "area": a.get("area", a['bbox'][2] * a['bbox'][3]),
-                "tokens_positive": [token_span],
+                "tokens_positive": [token_span],  # ✅ đúng format MDETR
                 "original_caption": caption,
-                "dataset_name": 'vqc',
+                "dataset_name": 'vqc'
             })
             ann_id += 1
 
@@ -73,29 +95,11 @@ for set_ in ['train', 'test', 'valid']:
             "caption": caption,
             "tokens": tokens
         })
-        output['categories'] = [
-            {
-                "id": 1,
-                "name": "3"
-            },
-            {
-                "id": 2,
-                "name": "4"
-            },
-            {
-                "id": 3,
-                "name": "5"
-            }
-        ]
-        output['info'] = {
-            "year": "2025",
-            "version": "1",
-            "description": "Exported from roboflow.com",
-            "contributor": "",
-            "url": "https://public.roboflow.com/object-detection/undefined",
-            "date_created": "2025-04-23T02:16:48+00:00"
-        }
 
-    # Save JSON
-    with open(f'vqc/{set_}/mdetr_periapical_annotations.json', 'w') as f:
+    # Ghi file JSON ra đúng format
+    out_file = f'vqc/{set_}/mdetr_periapical_annotations.json'
+    os.makedirs(os.path.dirname(out_file), exist_ok=True)
+    with open(out_file, 'w') as f:
         json.dump(output, f, indent=2)
+
+    print(f"[✓] Saved: {out_file}")
