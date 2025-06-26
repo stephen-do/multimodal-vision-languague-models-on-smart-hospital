@@ -710,7 +710,7 @@ class MLP(nn.Module):
 
 
 def build(args):
-    num_classes = 3
+    num_classes = 255
     device = torch.device(args.device)
 
     assert not args.masks or args.mask_model != "none"
