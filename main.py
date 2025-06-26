@@ -32,16 +32,15 @@ def get_args_parser():
 
     # Dataset specific
     parser.add_argument("--dataset_config", default='configs/refexp_pai.json', required=False)
-    parser.add_argument("--do_qa", action="store_true", help="Whether to do question answering")
+    parser.add_argument("--do_qa", default=False, help="Whether to do question answering")
     parser.add_argument(
         "--predict_final",
-        action="store_true",
         help="If true, will predict if a given box is in the actual referred set. Useful for CLEVR-Ref+ only currently.",
         default=False
     )
-    parser.add_argument("--no_detection", action="store_true", help="Whether to train the detector")
+    parser.add_argument("--no_detection", default=False, help="Whether to train the detector")
     parser.add_argument(
-        "--split_qa_heads", action="store_false", help="Whether to use a separate head per question type in vqa", default=False
+        "--split_qa_heads", help="Whether to use a separate head per question type in vqa", default=True
     )
 
     parser.add_argument("--coco_path", type=str, default="")
@@ -49,9 +48,9 @@ def get_args_parser():
     parser.add_argument("--lr", default=1e-4, type=float)
     parser.add_argument("--lr_backbone", default=1e-5, type=float)
     parser.add_argument("--text_encoder_lr", default=5e-5, type=float)
-    parser.add_argument("--batch_size", default=1, type=int)
+    parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--weight_decay", default=1e-4, type=float)
-    parser.add_argument("--epochs", default=40, type=int)
+    parser.add_argument("--epochs", default=100, type=int)
     parser.add_argument("--lr_drop", default=35, type=int)
     parser.add_argument(
         "--epoch_chunks",
@@ -99,7 +98,7 @@ def get_args_parser():
     # Backbone
     parser.add_argument(
         "--backbone",
-        default="resnet50",
+        default="resnet101",
         type=str,
         help="Name of the convolutional backbone to use such as resnet50 resnet101 timm_tf_efficientnet_b3_ns",
     )
@@ -165,8 +164,8 @@ def get_args_parser():
         choices=("none", "smallconv", "v2"),
         help="Segmentation head to be used (if None, segmentation will not be trained)",
     )
-    parser.add_argument("--remove_difficult", default=False)
-    parser.add_argument("--masks", default=False)
+    parser.add_argument("--remove_difficult", action="store_true")
+    parser.add_argument("--masks", action="store_true", default=False)
 
     # Loss
     parser.add_argument(
@@ -604,7 +603,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("DETR training and evaluation script", parents=[get_args_parser()])
-    args = parser.parse_args()
+    args = parser.parse_args([])
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
