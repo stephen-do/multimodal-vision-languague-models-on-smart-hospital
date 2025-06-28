@@ -40,7 +40,7 @@ def get_args_parser():
     )
     parser.add_argument("--no_detection", default=False, help="Whether to train the detector")
     parser.add_argument(
-        "--split_qa_heads", help="Whether to use a separate head per question type in vqa", default=True
+        "--split_qa_heads", help="Whether to use a separate head per question type in vqa", default=False
     )
 
     parser.add_argument("--coco_path", type=str, default="")
@@ -73,7 +73,7 @@ def get_args_parser():
         type=str,
         choices=("step", "multistep", "linear_with_warmup", "all_linear_with_warmup"),
     )
-    parser.add_argument("--ema", action="store_true")
+    parser.add_argument("--ema", action="store_true", default=True)
     parser.add_argument("--ema_decay", type=float, default=0.9998)
     parser.add_argument("--fraction_warmup_steps", default=0.01, type=float, help="Fraction of total number of steps")
 
@@ -245,7 +245,7 @@ def get_args_parser():
     parser.add_argument("--device", default="cuda", help="device to use for training / testing")
     parser.add_argument("--seed", default=42, type=int)
     parser.add_argument("--resume", default="", help="resume from checkpoint")
-    parser.add_argument("--load", default="", help="resume from checkpoint")
+    parser.add_argument("--load", default="https://zenodo.org/record/4721981/files/pretrained_resnet101_checkpoint.pth?download=1", help="resume from checkpoint")
     parser.add_argument("--start-epoch", default=0, type=int, metavar="N", help="start epoch")
     parser.add_argument("--eval", action="store_true", help="Only run evaluation")
     parser.add_argument("--num_workers", default=5, type=int)
@@ -426,7 +426,7 @@ def main(args):
     # loading into a model with different functionality.
     if args.load:
         print("loading from", args.load)
-        checkpoint = torch.load(args.load, map_location="cpu")
+        checkpoint = torch.hub.load_state_dict_from_url(args.load, map_location=device, check_hash=True)
         if "model_ema" in checkpoint:
             model_without_ddp.load_state_dict(checkpoint["model_ema"], strict=False)
         else:
