@@ -76,11 +76,12 @@ for set_ in ['train', 'valid', 'test']:
         for a, token_span in zip(anns, token_map):
             if token_span is None:
                 continue  # Skip nếu không match được phrase trong caption
-
+            x, y, w, h = a['bbox']
+            bbox_xyxy = [x, y, x + w, y + h]
             output['annotations'].append({
                 "id": ann_id,
                 "image_id": image_id,
-                "bbox": a['bbox'],
+                "bbox": bbox_xyxy,
                 "category_id": a['category_id'],
                 "iscrowd": a.get("iscrowd", 0),
                 "area": a.get("area", a['bbox'][2] * a['bbox'][3]),

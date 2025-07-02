@@ -220,7 +220,7 @@ def make_coco_transforms(image_set, cautious):
                     T.Compose(
                         [
                             T.RandomResize([400, 500, 600]),
-                            # T.RandomSizeCrop(384, max_size, respect_boxes=cautious),
+                            T.RandomSizeCrop(384, max_size, respect_boxes=cautious),
                             T.RandomResize(scales, max_size=max_size),
                         ]
                     ),
