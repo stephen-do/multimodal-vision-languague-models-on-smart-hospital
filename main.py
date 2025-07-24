@@ -45,9 +45,9 @@ def get_args_parser():
 
     parser.add_argument("--coco_path", type=str, default="")
     # Training hyper-parameters
-    parser.add_argument("--lr", default=1e-4, type=float)
-    parser.add_argument("--lr_backbone", default=1e-5, type=float)
-    parser.add_argument("--text_encoder_lr", default=5e-5, type=float)
+    parser.add_argument("--lr", default=5e-5, type=float)
+    parser.add_argument("--lr_backbone", default=0, type=float)
+    parser.add_argument("--text_encoder_lr", default=1e-5, type=float)
     parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--weight_decay", default=1e-4, type=float)
     parser.add_argument("--epochs", default=100, type=int)
@@ -205,28 +205,28 @@ def get_args_parser():
     # * Matcher
     parser.add_argument(
         "--set_cost_class",
-        default=1,
+        default=10,
         type=float,
         help="Class coefficient in the matching cost",
     )
     parser.add_argument(
         "--set_cost_bbox",
-        default=5,
+        default=3,
         type=float,
         help="L1 box coefficient in the matching cost",
     )
     parser.add_argument(
         "--set_cost_giou",
-        default=2,
+        default=10,
         type=float,
         help="giou box coefficient in the matching cost",
     )
     # Loss coefficients
-    parser.add_argument("--ce_loss_coef", default=1, type=float)
+    parser.add_argument("--ce_loss_coef", default=10, type=float)
     parser.add_argument("--mask_loss_coef", default=1, type=float)
     parser.add_argument("--dice_loss_coef", default=1, type=float)
-    parser.add_argument("--bbox_loss_coef", default=5, type=float)
-    parser.add_argument("--giou_loss_coef", default=2, type=float)
+    parser.add_argument("--bbox_loss_coef", default=3, type=float)
+    parser.add_argument("--giou_loss_coef", default=10, type=float)
     parser.add_argument("--qa_loss_coef", default=1, type=float)
     parser.add_argument(
         "--eos_coef",
@@ -244,8 +244,12 @@ def get_args_parser():
     parser.add_argument("--output-dir", default="outputs/refexp_det_only", help="path where to save, empty for no saving")
     parser.add_argument("--device", default="cuda", help="device to use for training / testing")
     parser.add_argument("--seed", default=42, type=int)
+    # parser.add_argument("--resume", default="outputs/refexp_det_only/checkpoint0047.pth", help="resume from checkpoint")
     parser.add_argument("--resume", default="", help="resume from checkpoint")
+
     parser.add_argument("--load", default="checkpoints/pretrained_resnet101_checkpoint.pth", help="resume from checkpoint")
+    # parser.add_argument("--load", default="outputs/refexp_det/BEST_checkpoint.pth", help="resume from checkpoint")
+    # parser.add_argument("--load", default="", help="resume from checkpoint")
     parser.add_argument("--start-epoch", default=0, type=int, metavar="N", help="start epoch")
     parser.add_argument("--eval", action="store_true", help="Only run evaluation")
     parser.add_argument("--num_workers", default=5, type=int)
@@ -427,6 +431,7 @@ def main(args):
     if args.load:
         print("loading from", args.load)
         checkpoint = torch.load(args.load, map_location=device, weights_only=False)
+        # checkpoint = torch.hub.load_state_dict_from_url(args.load, map_location=device, check_hash=True)
         if "model_ema" in checkpoint:
             model_without_ddp.load_state_dict(checkpoint["model_ema"], strict=False)
         else:
@@ -440,8 +445,8 @@ def main(args):
         if args.resume.startswith("https"):
             checkpoint = torch.hub.load_state_dict_from_url(args.resume, map_location=device, check_hash=True)
         else:
-            checkpoint = torch.load(args.resume, map_location="cpu")
-        model_without_ddp.load_state_dict(checkpoint["model"])
+            checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
+        model_without_ddp.load_state_dict(checkpoint["model"], strict=False)
         if not args.eval and "optimizer" in checkpoint and "epoch" in checkpoint:
             optimizer.load_state_dict(checkpoint["optimizer"])
             args.start_epoch = checkpoint["epoch"] + 1
@@ -599,6 +604,7 @@ def main(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print("Training time {}".format(total_time_str))
+    return model
 
 
 if __name__ == "__main__":
@@ -606,4 +612,4 @@ if __name__ == "__main__":
     args = parser.parse_args([])
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args)
+    model = main(args)

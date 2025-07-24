@@ -101,41 +101,48 @@ import json
 import os
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
-# Đường dẫn đến file JSON và ảnh
-json_path = 'vqc/valid/mdetr_periapical_annotations.json'
-img_dir = 'vqc/valid/'  # chỉnh nếu ảnh ở thư mục khác
+# Đường dẫn đến file JSON và thư mục ảnh
+json_path = 'vqc/test/_annotations.json'
+img_dir = 'vqc/test/'  # chỉnh nếu ảnh ở thư mục khác
 
 # Load dữ liệu
 with open(json_path, 'r') as f:
     data = json.load(f)
 
-# Tạo từ điển ảnh
+# Tạo map image_id -> image_info
 image_map = {img['id']: img for img in data['images']}
-sentence_map = {s['image_id']: s for s in data['sentences']}
 
-# Visualize một vài ảnh
-for ann in data['annotations'][5:10]:  # đổi [:5] để vẽ nhiều hơn
-    image_id = ann['image_id']
+# Tạo map image_id -> list of annotations
+annotations_map = defaultdict(list)
+for ann in data['annotations']:
+    annotations_map[ann['image_id']].append(ann)
+
+# Vẽ tất cả annotation trên từng ảnh
+for image_id, anns in annotations_map.items():
+    if image_id != 97:
+        continue
     img_info = image_map[image_id]
     file_path = os.path.join(img_dir, img_info['file_name'])
+
+    # Mở ảnh
     img = Image.open(file_path).convert("RGB")
     draw = ImageDraw.Draw(img)
 
-    caption = sentence_map[image_id]['caption']
-    tokens = sentence_map[image_id]['tokens']
-    token_span = ann['tokens_positive'][0]
-    phrase = " ".join(tokens[token_span[0]:token_span[1]])
+    for ann in anns:
+        bbox = ann['bbox']
+        x, y, w, h = bbox
+        draw.rectangle([x, y, x + w, y + h], outline="red", width=3)
 
-    # Vẽ box
-    bbox = ann['bbox']
-    x, y, w, h = bbox
-    draw.rectangle([x, y, x + w, y + h], outline="red", width=3)
-    draw.text((x, y - 10), phrase, fill="red")
+        # Nếu bạn có phrase tương ứng thì thêm vào đây
+        # phrase = ...
+        # draw.text((x, y - 10), phrase, fill="red")
 
     # Hiển thị
     plt.figure(figsize=(6, 6))
     plt.imshow(img)
-    plt.title(f"Caption: {caption}")
+    plt.title(f"Image ID: {image_id}")
     plt.axis("off")
     plt.show()
+

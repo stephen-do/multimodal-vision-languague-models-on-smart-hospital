@@ -1,16 +1,14 @@
 import json
-from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 import os
 
-# CATEGORY MAP: Chuyển category_id thành phrase
+# CATEGORY MAP
 CATEGORY_MAP = {
-    1: "mild pai",
-    2: "moderate pai",
-    3: "severe pai"
+    1: "pai 3",
+    2: "pai 4",
+    3: "pai 5"
 }
 
-# Loop qua từng tập dữ liệu
 for set_ in ['train', 'valid', 'test']:
     with open(f'vqc/{set_}/_annotations.coco.json', 'r') as f:
         coco = json.load(f)
@@ -20,31 +18,52 @@ for set_ in ['train', 'valid', 'test']:
         "annotations": [],
         "sentences": [],
         "categories": [
-            {"id": 1, "name": "mild pai"},
-            {"id": 2, "name": "moderate pai"},
-            {"id": 3, "name": "severe pai"},
+            {"id": 1, "name": "pai 3"},
+            {"id": 2, "name": "pai 4"},
+            {"id": 3, "name": "pai 5"},
         ],
         "info": {
             "year": "2025",
             "version": "1",
-            "description": "Converted to MDETR RefExp format",
+            "description": "Converted to MDETR RefExp format with unique caption per image",
             "contributor": "You",
             "url": "https://your.dataset.source/",
-            "date_created": "2025-06-24"
+            "date_created": "2025-07-10"
         }
     }
 
     ann_id = 0
     for img in tqdm(coco['images'], desc=f"Processing {set_} set"):
         image_id = img['id']
-
         anns = [a for a in coco['annotations'] if a['image_id'] == image_id]
         if not anns:
             continue
 
-        phrases = [CATEGORY_MAP[a['category_id']] for a in anns]
-        caption = ", ".join(phrases)
+        # Duyệt theo thứ tự xuất hiện, lọc trùng
+        seen = set()
+        unique_phrases = []
+        for a in anns:
+            phrase = CATEGORY_MAP.get(a['category_id'], None)
+            if phrase and phrase not in seen:
+                unique_phrases.append(phrase)
+                seen.add(phrase)
 
+        # Caption dạng "pai 3, pai 4, pai 5"
+        caption = ", ".join(unique_phrases)
+
+        # Tính span chính xác không bao gồm dấu phẩy
+        phrase_to_span = {}
+        start = 0
+        for phrase in unique_phrases:
+            search_phrase = phrase.strip()
+            idx = caption.find(search_phrase, start)
+            if idx == -1:
+                print(f"[WARN] Phrase '{phrase}' not found in caption: '{caption}'")
+                continue
+            phrase_to_span[phrase] = [(idx, idx + len(search_phrase) - 1)]
+            start = idx + len(search_phrase) - 1
+
+        # Ghi ảnh
         output['images'].append({
             "id": image_id,
             "file_name": img['file_name'],
@@ -54,50 +73,36 @@ for set_ in ['train', 'valid', 'test']:
             "dataset_name": 'vqc'
         })
 
-        tokens = word_tokenize(caption)
+        # Ghi annotation
+        for a in anns:
+            category_id = a['category_id']
+            phrase = CATEGORY_MAP.get(category_id, None)
+            if phrase not in phrase_to_span:
+                continue
 
-        # Mapping phrase -> token spans (list of token indices)
-        token_map = []
-        used_spans = set()
-        for phrase in phrases:
-            phrase_tokens = word_tokenize(phrase)
-            matched = False
-            for i in range(len(tokens) - len(phrase_tokens) + 1):
-                token_indices = list(range(i, i + len(phrase_tokens)))
-                if tokens[i:i + len(phrase_tokens)] == phrase_tokens and tuple(token_indices) not in used_spans:
-                    token_map.append(token_indices)  # ✅ đúng format RefExp
-                    used_spans.add(tuple(token_indices))
-                    matched = True
-                    break
-            if not matched:
-                print(f"[WARN] Phrase not found in caption: '{phrase}' → skipped.")
-                token_map.append(None)
+            # x, y, w, h = a['bbox']
+            # bbox_xyxy = [x, y, x + w, y + h]
 
-        for a, token_span in zip(anns, token_map):
-            if token_span is None:
-                continue  # Skip nếu không match được phrase trong caption
-            x, y, w, h = a['bbox']
-            bbox_xyxy = [x, y, x + w, y + h]
             output['annotations'].append({
                 "id": ann_id,
                 "image_id": image_id,
-                "bbox": bbox_xyxy,
-                "category_id": a['category_id'],
+                "bbox": a['bbox'],
+                "category_id": category_id,
                 "iscrowd": a.get("iscrowd", 0),
-                "area": a.get("area", a['bbox'][2] * a['bbox'][3]),
-                "tokens_positive": [token_span],  # ✅ đúng format MDETR
+                "area": a.get("area"),
+                "tokens_positive": phrase_to_span[phrase],
                 "original_caption": caption,
                 "dataset_name": 'vqc'
             })
             ann_id += 1
 
+        # Ghi sentence
         output['sentences'].append({
             "image_id": image_id,
-            "caption": caption,
-            "tokens": tokens
+            "caption": caption
         })
 
-    # Ghi file JSON ra đúng format
+    # Lưu file
     out_file = f'vqc/{set_}/mdetr_periapical_annotations.json'
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     with open(out_file, 'w') as f:
